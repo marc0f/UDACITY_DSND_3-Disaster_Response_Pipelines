@@ -47,8 +47,17 @@ def clean_data(df):
     # drop the original categories column from `df`
     df = df.drop(columns='categories')
 
+    # NOTE: in 'related' found inconsistent values '2'. unable to define right category, drop rows
+    # NOTE 2: check every category to avoid inconsistent values, not 0 or 1
+    inconsistent_rows = categories.index[~categories.isin([0, 1]).all(axis=1)]
+    num_of_inconsistent_rows = len(inconsistent_rows)
+
     # concatenate the original dataframe with the new `categories` dataframe
     df = pd.concat([df, categories], axis=1)
+
+    # drop inconsistent rows
+    df = df.drop(index=inconsistent_rows)
+    print(f"    Dropped inconsistent rows: {num_of_inconsistent_rows}")
 
     # Remove duplicates
     # # check number of duplicates
@@ -67,8 +76,8 @@ def save_data(df, database_filename):
 
 
 def main():
-    if len(sys.argv) == 4:
 
+    if len(sys.argv) == 4:
         messages_filepath, categories_filepath, database_filepath = sys.argv[1:]
 
         print('Loading data...\n    MESSAGES: {}\n    CATEGORIES: {}'
