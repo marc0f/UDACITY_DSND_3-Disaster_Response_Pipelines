@@ -1,50 +1,73 @@
 import json
 import plotly
 import pandas as pd
+import re
 
+from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
 from nltk.tokenize import word_tokenize
 
 from flask import Flask
 from flask import render_template, request, jsonify
 from plotly.graph_objs import Bar
-from sklearn.externals import joblib
+from joblib import load
 from sqlalchemy import create_engine
 
 
 app = Flask(__name__)
 
+
+# def tokenize(text):
+#     tokens = word_tokenize(text)
+#     lemmatizer = WordNetLemmatizer()
+#
+#     clean_tokens = []
+#     for tok in tokens:
+#         clean_tok = lemmatizer.lemmatize(tok).lower().strip()
+#         clean_tokens.append(clean_tok)
+#
+#     return clean_tokens
+
 def tokenize(text):
-    tokens = word_tokenize(text)
+    stop_words = stopwords.words("english")
     lemmatizer = WordNetLemmatizer()
+    # normalize case and remove punctuation
+    text = re.sub(r"[^a-zA-Z0-9]", " ", text.lower())
 
-    clean_tokens = []
-    for tok in tokens:
-        clean_tok = lemmatizer.lemmatize(tok).lower().strip()
-        clean_tokens.append(clean_tok)
+    # tokenize text
+    tokens = word_tokenize(text)
 
-    return clean_tokens
+    # lemmatize and remove stop words
+    tokens = [lemmatizer.lemmatize(word) for word in tokens if word not in stop_words]
+
+    return tokens
+
 
 # load data
-engine = create_engine('sqlite:///../data/YourDatabaseName.db')
-df = pd.read_sql_table('YourTableName', engine)
+engine = create_engine('sqlite:///../data/DisasterResponse.db')
+df = pd.read_sql_table('Message', engine)
 
 # load model
-model = joblib.load("../models/your_model_name.pkl")
+model = load("../models/classifier.pkl")
 
 
 # index webpage displays cool visuals and receives user input text for model
 @app.route('/')
 @app.route('/index')
 def index():
-    
+
     # extract data needed for visuals
-    # TODO: Below is an example - modify to extract data for your own visuals
     genre_counts = df.groupby('genre').count()['message']
     genre_names = list(genre_counts.index)
-    
+
+    avg_message_tokens = df['message'].iloc[0:10].apply(tokenize).str.len().mean()
+    df_categories = df.drop(columns=['id', 'message', 'original', 'genre'])
+    avg_categories_per_message = df_categories.sum(axis=1).mean()
+
+    sort_categories_series = df_categories.sum(axis=0).sort_values(ascending=False)
+    # less_common_categories_series = df_categories.sum(axis=0).sort_values()[:3]
+
     # create visuals
-    # TODO: Below is an example - modify to create your own visuals
     graphs = [
         {
             'data': [
@@ -63,13 +86,67 @@ def index():
                     'title': "Genre"
                 }
             }
-        }
+        },
+        {
+            'data': [
+                Bar(
+                    x=['Avg. tokens', 'Avg. categories'],
+                    y=[avg_message_tokens, avg_categories_per_message]
+                )
+            ],
+
+            'layout': {
+                'title': 'Average tokens per message and average categories per message',
+                'yaxis': {
+                    'title': "Count"
+                },
+                'xaxis': {
+                    'title': ""
+                }
+            }
+        },
+        {
+            'data': [
+                Bar(
+                    x=sort_categories_series.index,
+                    y=sort_categories_series.values / df.shape[0]
+                )
+            ],
+
+            'layout': {
+                'title': 'Distribution of categories (percentage of usage)',
+                'yaxis': {
+                    'title': "Percentage"
+                },
+                'xaxis': {
+                    'title': "Categories"
+                }
+            }
+        },
+        # {
+        #     'data': [
+        #         Bar(
+        #             x=less_common_categories_series.index,
+        #             y=less_common_categories_series.values
+        #         )
+        #     ],
+        #
+        #     'layout': {
+        #         'title': 'Less common categories (bottom 3)',
+        #         'yaxis': {
+        #             'title': "Count"
+        #         },
+        #         'xaxis': {
+        #             'title': "Categories"
+        #         }
+        #     }
+        # }
     ]
-    
+
     # encode plotly graphs in JSON
     ids = ["graph-{}".format(i) for i, _ in enumerate(graphs)]
     graphJSON = json.dumps(graphs, cls=plotly.utils.PlotlyJSONEncoder)
-    
+
     # render web page with plotly graphs
     return render_template('master.html', ids=ids, graphJSON=graphJSON)
 
@@ -78,7 +155,7 @@ def index():
 @app.route('/go')
 def go():
     # save user input in query
-    query = request.args.get('query', '') 
+    query = request.args.get('query', '')
 
     # use model to predict classification for query
     classification_labels = model.predict([query])[0]
