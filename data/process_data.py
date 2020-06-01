@@ -48,7 +48,7 @@ def clean_data(df):
     df = df.drop(columns='categories')
 
     # NOTE: in 'related' found inconsistent values '2'. unable to define right category, drop rows
-    # NOTE 2: check every category to avoid inconsistent values, not 0 or 1
+    # NOTE: check every category to avoid inconsistent values, not 0 or 1
     inconsistent_rows = categories.index[~categories.isin([0, 1]).all(axis=1)]
     num_of_inconsistent_rows = len(inconsistent_rows)
 
@@ -72,7 +72,7 @@ def clean_data(df):
 
 def save_data(df, database_filename):
     engine = create_engine(f'sqlite:///{database_filename}')
-    df.to_sql('InsertTableName', engine, index=False)
+    df.to_sql('Message', engine, index=False)
 
 
 def main():

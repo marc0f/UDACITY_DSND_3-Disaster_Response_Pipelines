@@ -13,6 +13,8 @@ from plotly.graph_objs import Bar
 from joblib import load
 from sqlalchemy import create_engine
 
+from utils.extra import MyTfidfTransformer, clean_labels
+
 
 app = Flask(__name__)
 
@@ -27,6 +29,7 @@ app = Flask(__name__)
 #         clean_tokens.append(clean_tok)
 #
 #     return clean_tokens
+
 
 def tokenize(text):
     stop_words = stopwords.words("english")
@@ -46,6 +49,7 @@ def tokenize(text):
 # load data
 engine = create_engine('sqlite:///../data/DisasterResponse.db')
 df = pd.read_sql_table('Message', engine)
+_, category_names = clean_labels(df.drop(columns=['id', 'message', 'original', 'genre']))
 
 # load model
 model = load("../models/classifier.pkl")
@@ -159,7 +163,7 @@ def go():
 
     # use model to predict classification for query
     classification_labels = model.predict([query])[0]
-    classification_results = dict(zip(df.columns[4:], classification_labels))
+    classification_results = dict(zip(category_names, classification_labels))
 
     # This will render the go.html Please see that file. 
     return render_template(
