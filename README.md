@@ -22,8 +22,7 @@ Install the required packages:
 
 3. Go to http://0.0.0.0:3001/
 
-**NOTE:** DisasterResponse.db and classifier.pkl are provided in the repository as references. To avoid errors or to 
-overwriting, rename them.
+**NOTE:** A reference db and model (_DisasterResponse.db and _classifier.pkl) are provided in the repository.
 
 ## Details
 
