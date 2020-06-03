@@ -6,6 +6,7 @@ Install the required packages:
     pip install -r requirements.txt
 
 ### Instructions
+
 1. Run the following commands in the project's root directory to set up your database and model.
 
     - To run ETL pipeline that cleans data and stores in database  
@@ -20,6 +21,9 @@ Install the required packages:
     `python run.py`
 
 3. Go to http://0.0.0.0:3001/
+
+**NOTE:** DisasterResponse.db and classifier.pkl are provided in the repository as references. To avoid errors or to 
+overwriting, rename them.
 
 ## Details
 
