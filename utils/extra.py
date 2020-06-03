@@ -8,7 +8,7 @@ class MyTfidfTransformer(TfidfTransformer):
         return result
 
 
-def clean_labels(Y):
+def clean_one_class_category(Y):
     """ Check for one-class categories, all values zeros or ones. Returns a clean version of Y and categories. """
 
     # check for columns with only one values. All values equal 0, or 1.

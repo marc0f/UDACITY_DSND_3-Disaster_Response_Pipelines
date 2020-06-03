@@ -19,7 +19,7 @@ from sklearn.svm import SVC
 from joblib import dump
 
 
-from utils.extra import MyTfidfTransformer, clean_labels
+from utils.extra import MyTfidfTransformer, clean_one_class_category
 
 nltk.download('punkt')
 nltk.download('stopwords')
@@ -55,6 +55,8 @@ def tokenize(text):
 
 
 def build_model():
+
+    # compose the processing pipeline
     pipeline = Pipeline([
         ('vect', CountVectorizer(tokenizer=tokenize)),
         # ('tfidf', TfidfTransformer(smooth_idf=False)),
@@ -63,50 +65,49 @@ def build_model():
         ('cls', MultiOutputClassifier(SVC(), n_jobs=num_cpus))
     ])
 
-    # # extended
-    # parameters = {
-    #     'vect__ngram_range': ((1, 1), (1, 2)),
-    #     'vect__max_df': (0.5, 0.75, 1.0),
-    #     'vect__max_features': (None, 5000, 10000),
-    #     'tfidf__use_idf': (True, False),
-    #     'cls__estimator__n_estimators': [10, 50, 100, 200],
-    #     'cls__estimator__min_samples_split': [2, 3, 4]
-    # }
+    # full params
+    parameters = {
+        'vect__ngram_range': ((1, 1), (1, 2)),
+        'vect__max_df': (0.5, 0.75, 1.0),
+        'vect__max_features': (None, 5000, 10000),
+        'tfidf__use_idf': (True, False),
+        'cls__estimator__n_estimators': [10, 50, 100, 200],
+        'cls__estimator__min_samples_split': [2, 3, 4]
+    }
 
-    # reduced
-    # parameters = {
+    # reduced params
+    # best_parameters = {
+    #     'cls__estimator__kernel': ['linear', 'rgf'],
     #     'tfidf__use_idf': (True, False),
-    #     'cls__estimator__min_samples_split': [2, 4]
-    # }
+    #     'vect__max_df': 0.5,
+    #     'vect__max_features': 10000,
+    #     'vect__ngram_range': (1, 2)}
 
-    # parameters = {
-    #     'vect__ngram_range': ((1, 1), (1, 2)),
-    #     'vect__max_df': (0.5, 0.75, 1.0),
-    #     'vect__max_features': (None, 5000, 10000),
-    #     'tfidf__use_idf': (True, False),
-    #     'cls__estimator__kernel': ['linear', 'rbf']
-    # }
-
-    # cv = GridSearchCV(pipeline, param_grid=parameters)
-    # return cv
-    return pipeline
+    # instantiate search grid
+    cv = GridSearchCV(pipeline, param_grid=parameters, verbose=2)
+    return cv
+    # return pipeline
 
 
 def evaluate_model(model, X_test, Y_test, category_names):
 
+    # use model to predict output given the test data
     Y_pred = model.predict(X_test)
 
+    # convert prediction and expected outputs into dataframes
     y_pred_df = pd.DataFrame(Y_pred)
     y_pred_df.columns = category_names
     y_test_df = pd.DataFrame(Y_test)
     y_test_df.columns = category_names
 
-    reports = dict()
+    # get reports of the performance (accuracy, f1-score, precision, recall) for each category
+    # reports = dict()
     for col in category_names:
         print(col)
         print(classification_report(y_test_df[col], y_pred_df[col]))
-        reports[col] = classification_report(y_test_df[col], y_pred_df[col], output_dict=True)
+        # reports[col] = classification_report(y_test_df[col], y_pred_df[col], output_dict=True)
 
+    # print best params when search grid is performed
     if isinstance(model, GridSearchCV):
         print("Best params:")
         print(model.best_params_)
@@ -123,7 +124,7 @@ def main():
         X, Y, category_names = load_data(database_filepath)
 
         # add step to remove non used classes. Avoid error in Classificators that do not support unique classes (e.g., SVC)
-        Y, category_names = clean_labels(Y)
+        Y, category_names = clean_one_class_category(Y)
 
         X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2)
 

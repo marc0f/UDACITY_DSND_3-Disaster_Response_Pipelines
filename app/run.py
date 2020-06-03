@@ -13,7 +13,7 @@ from plotly.graph_objs import Bar
 from joblib import load
 from sqlalchemy import create_engine
 
-from utils.extra import MyTfidfTransformer, clean_labels
+from utils.extra import MyTfidfTransformer, clean_one_class_category
 
 
 app = Flask(__name__)
@@ -49,7 +49,7 @@ def tokenize(text):
 # load data
 engine = create_engine('sqlite:///../data/DisasterResponse.db')
 df = pd.read_sql_table('Message', engine)
-_, category_names = clean_labels(df.drop(columns=['id', 'message', 'original', 'genre']))
+_, category_names = clean_one_class_category(df.drop(columns=['id', 'message', 'original', 'genre']))
 
 # load model
 model = load("../models/classifier.pkl")
